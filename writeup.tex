@@ -1,0 +1,35 @@
+% CS267 - Project Proposal - Kolb & Gardner
+
+\documentclass[american]{article}
+\usepackage[american]{babel}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[backend=biber, style=authoryear]{biblatex}
+\addbibresource{proj_refs.bib}
+\DeclareLanguageMapping{american}{american-apa}
+\usepackage{csquotes}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+
+\begin{document}
+
+\title{CS267 - Project Proposal}
+\author{Jack Kolb \& Michael Gardner}
+\date{\today}
+\maketitle
+
+\section{Introduction}
+One of the the more challenging aspects in the analysis of jointed rock masses using discrete element methods is generating the discrete blocks that will used to model the actual rock mass. Rock blocks need to be generated based on observed discontinuities in the field. These observations can be in the form of LIDAR scans or photo surveys of the rock face or hand-measurements of the discontinuety orientations. In 3-D, identification of polyhedral blocks is extremely tedious since algorithms need to keep track of vertices, edges and faces as well as the hierarchy of how these features are connected \parencite{Collision}. \par
+\textcite{Collision} propose a new algorithm that requires only a single level of data structure rather than the traditional 2 to 3 levels required for previous approaches. The space occupied by the polyhedron can be defined as a set of linear inequalities such that determining joint intersections and contact can be solved using techniques from convex optimization. As such, only information on the faces of the polyhedra and discontinuities are required to determine blocking and contact.
+
+\section{Implementation on Apache Spark}
+This problem lends itself to being solved with Apache Spark, since a large initial data set will have to be queried multiple times to determine fracture orientations. The number of particles in a discrete element model can be in the order of  several thousand, each of which needs to be explicitly defined before any simulation can be done. The process of defining this discretization can be massively time consumeing and computationally expensive; however, the algorithm lends itself to being run in parallel. \par
+The initial goal of this project would be to take a simple input geometry, a set of discontinueties and an assumed failure plane and output a set of blocks that could be used in a discrete element analysis. However, if time permits, the project could be extended to have the initial input be a full-scale LIDAR survey and information on a likely failure plane. The program would then determine fracture orientations and prevalence before starting the rock slicing computations.  
+
+\clearpage
+\nocite{*}
+\printbibliography
+
+\end{document}
