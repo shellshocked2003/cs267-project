@@ -7,3 +7,5 @@ clean:
 	rm -f *.log
 	rm -f *.bcf
 	rm -f *.run.xml
+	rm -f *bbl
+	rm -f *.blg
