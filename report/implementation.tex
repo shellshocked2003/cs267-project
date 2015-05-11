@@ -36,7 +36,14 @@ Here \texit{N} represents the number of planes that define the block and the dis
 
 As the subdivision continues, some of the discontinuities may become geometrically redundant. It is not necessary to remove these redundancies after each intersection check; instead they can be removed after all discontinuities have been considered. Again, this can be done by solving a linear program: \par
 
-\begin{}
+\begin{align}
+maximize \boldsymbol{c^{T} x}
+\boldsymbol{a_{i}^{T} x} - d_{i}, i = 1,...,N
+\end{align}
+
+Here, \textbf{c} is one of the normal vectors $a_{i}$. If $\vert \boldsymbol{c^{T} x - d} \vert < \varepsilon$ is true the discontinuity is redundant, where $\varepsilon$ represents numerical tolerance close to zero. \par
+
+Not all joints are necessily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. The 
 
 
 
