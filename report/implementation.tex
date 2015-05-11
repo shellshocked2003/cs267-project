@@ -24,6 +24,20 @@ a_ix + b_iy + c_iz \leq d_i, i = 1,...,N
 
 The coefficients $(a_i, b_i, c_i)$ represent the normal vector to the $i^{th}$ plane bounding the block and $d_i$ is the distance of that plane from some local origin. \par
  
-In order to subdivide blocks, it is necessary to determine whether block is intersected
+In order to subdivide a block, it is necessary to establish whether the block is intersected by the discontinuity being considered. The novelty in the algorithm presented in \cite{slicing} is recasting this problem as the following linear program: \par
+
+\begin{align} 
+minimize s
+\boldsymbol{a_{i}^{T}} - d_i \leq s, i = 1,...,N
+\boldsymbol{a_{new}^{T}} - d_{new} = 0
+\end{align}
+
+Here \texit{N} represents the number of planes that define the block and the discontinuity being considered is represented by the equality. If $s < 0$, there is an intersection and the parent block is split into two child blocks. The child blocks inherit all parent block's planes as well as the intersecting discontinuity with opposite signs for each child block. \par
+
+As the subdivision continues, some of the discontinuities may become geometrically redundant. It is not necessary to remove these redundancies after each intersection check; instead they can be removed after all discontinuities have been considered. Again, this can be done by solving a linear program: \par
+
+\begin{}
+
+
 
 \subsection{Input Processing}
