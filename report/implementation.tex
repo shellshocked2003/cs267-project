@@ -78,5 +78,5 @@ To calculate the centroid following \cite{centroid}, the boundary of the block m
 
 All of the calculations mentioned above are implemented as methods within the \textit{Block} class. Again, the functional approach lends itself to \textit{map} and pattern matching on Spark: the vertices are calculated using \textit{findVertices} which then are fed into the \textit{mesh} method. The vertices and mesh then serve as the inputs to \textit{centroid}. The calculated centroid is used to find the new distances of the faces relative to the centroid in \textit{updateFaces}. The centroid and updated faces are then the inputs to the \textit{Block} constructor, so a list of new blocks is returned with the correct centroids and faces when the mapping is completed.
 
-\subsection{\Output to JSON}
+\subsection{Output to JSON}
 The final list of blocks is then ready to be used in a DEM analysis. In order to make the output accesible to other software, the resulting list of blocks is printed in JSON format to a text file. This is achieved through a \textit{json} object that contains methods for converting the \textit{Block}data structure to JSON and then writing the converted data to a text file. 
