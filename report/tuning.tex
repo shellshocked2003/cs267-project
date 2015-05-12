@@ -6,6 +6,13 @@ Before we can begin processing discontinuities in parallel, we need to construct
 \subsection{Number of Partitions in RDD}
 Another important factor in the performance of the rock slicing algorithm is the number of partitions in the rock block RDDs. This in turn determines the number of compute tasks shared amongst Spark workers and therefore influences the degree of parallelism we can achieve. There is a general tradeoff involving the number of partitions: too few partitions leads to a small number of tasks that can be scheduled, forcing workers to sit idle and causing underutilization, while too many partitions and thus a high number tasks can lead to excessive communication amongst nodes. One would then expect that the optimal number of RDD partitions is closely related to the number of available CPU cores. Indeed, the Spark developers recommend as a general rule that RDD partitions should be constructed such that there are 2 to 3 tasks per core \cite{sparkTuning}. Section 5 presents results from experiments testing the relationship between partition count and overall performance as well as the value of this recommendation.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{flatMap.pdf}
+\caption{An Example of Partition Imbalance Induced by Cutting Blocks}
+\label{fig:flatMap}
+\end{figure}
+
 \subsection{Repartitioning to Avoid Data Skew}
 We found data skew to be a major problem in the execution of our algorithm on Spark. Specifically, the sequence of \texttt{flatMap} transformations that perform the actual rock slicing can lead to large discrepancies in sizes of RDD partitions because the child blocks produced by cutting a parent block stay in the same RDD partition as the parent block by default. See Figure \ref{fig:flatMap} for an example. This imbalance means that some partition transformations require significantly more time than others, causing nodes that have completed compute tasks associated with the smaller partitions to sit idle while waiting for others to catch up. The resulting underutilization can significantly impact the running time of our algorithm.
 

@@ -1,3 +1,5 @@
+We ran several experiments in order to to evaluate the behavior of our rock slicing algorithm. We used a local installation of Spark running on a server featuring a 24-core Intel Xeon E5 CPU and 32 GB of RAM. To gather timing data, we processed the logs ouput by Spark as well as data from a locally running job history web server packaged with Spark. While we attempted some basic tests on a larger-scale Spark deployment on NERSC's Edison platform, we have left most of this testing and analysis to future work. Instead, we focus here on local Spark experiments, which still reveal interesting behavior patterns in our algorithm. Overall, our implementation did not perform as efficiently as we had hoped. The main lesson learned from our experiments is that our algorithm's performance is adequate, especially when compared to the original serial algorithm in \cite{slicing}, but that significantly more testing, analysis, and tuning is necessary for our algorithm to take full advantage of Spark's potential.
+
 \subsection{Repartition Frequency}
 The results of our repartition frequency experiments are shown in Figure \ref{fig:FrequencySensitivity}. We ran experiments using 8 partitions based on results from the partition count results, discussed in the Partition Count section. The experiments were run using 42,875 blocks on a single machine with 12 and 16 cores. The repartition frequency determines how often the RDD gets redistributed among the executor nodes to maintain load balance. As can be seen in the results, repartitioning more often generally leads to faster runs with a repartion period on the order ~15 discontinuities giving close to optimal performance. \par
 
@@ -5,8 +7,9 @@ There is a significant spike in the time it took the runs to complete when using
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.4\textwidth]{FrequencySensitivity} 
-  \label{fig:FrequencySensitivity}           
+  \includegraphics[width=0.4\textwidth]{FrequencySensitivity}
+  \caption{}
+  \label{fig:FrequencySensitivity}
 \end{figure}
 
 Conversely, computation times close to optimal were achieved by repartitioning only once after 75 joints had been processed. This makes intuitive sense as it seems to strike a balance between minimizing shuffling  while  maintaining a balanced load. It is possible that as a ``rule of thumb'' repartitioning only once when approximately 75\% of the joints have been proccessed will give timings close enough to optimum for general use. Unfortunately, there was insufficient time to investigate this phenomenon further due to time constraints. \par
@@ -18,8 +21,9 @@ Figure \ref{fig:PartCount} shows the results of our sensitivity analysis for RDD
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.4\textwidth]{PartCount} 
-  \label{fig:PartCount}           
+  \includegraphics[width=0.4\textwidth]{PartCount}
+  \caption{}
+  \label{fig:PartCount}
 \end{figure}
 
 What is clear from the experiments though is that getting the partition number wrong actually leads to worse performance when using more cores. Only by selecting the correct amount of partitions does it lead to increased performance for more computing power - 16 cores only outperformed 12 cores when using 8 partitions. For all other partition values tested 12 cores are faster than 16, especially when using more partitions.
@@ -29,12 +33,12 @@ What is clear from the experiments though is that getting the partition number w
 \centering
 \begin{subfigure}{0.5\textwidth}
     \centering
-    \includegraphics[width=0.4\textwidth]{weakScalingEfficiency.png}
+    \includegraphics[width=0.85\textwidth]{weakScalingEfficiency.png}
     \caption{Efficiency Relative to Serial Execution}
 \end{subfigure}%
 \begin{subfigure}{0.5\textwidth}
     \centering
-    \includegraphics[width=0.4\textwidth]{weakScalingTime.png}
+    \includegraphics[width=0.85\textwidth]{weakScalingTime.png}
     \caption{Execution Time vs. Number of Cores}
 \end{subfigure}
 \caption{Weak Scaling Results when Processing 4000 Rock Blocks Per Core}
@@ -48,12 +52,12 @@ The results from our evaluation of weak scaling are presented in Figure \ref{fig
 \centering
 \begin{subfigure}{0.5\textwidth}
     \centering
-    \includegraphics[width=0.4\linewidth]{strongScalingEfficiency.png}
+    \includegraphics[width=0.85\textwidth]{strongScalingEfficiency.png}
     \caption{Efficiency Relative to Serial Execution}
 \end{subfigure}%
 \begin{subfigure}{0.5\textwidth}
     \centering
-    \includegraphics[width=0.4\linewidth]{strongScalingTime.png}
+    \includegraphics[width=0.85\textwidth]{strongScalingTime.png}
     \caption{Execution Time vs. Number of Cores}
 \end{subfigure}
 \caption{Weak Scaling Results when Processing 4000 Rock Blocks Per Core}
@@ -67,12 +71,12 @@ Our strong scaling results, presented in Figure \ref{fig:strongScaling}, are muc
 \centering
 \begin{subfigure}{0.5\textwidth}
     \centering
-    \includegraphics[width=0.4\linewidth]{visualVMComputation.png}
+    \includegraphics[width=0.85\textwidth]{visualVMComputation.png}
     \caption{Sample of Functions}
 \end{subfigure}%
 \begin{subfigure}{0.5\textwidth}
     \centering
-    \includegraphics[width=0.4\linewidth]{visualVMMemory.png}
+    \includegraphics[width=0.85\textwidth]{visualVMMemory.png}
     \caption{Memory Behavior}
 \end{subfigure}
 \caption{Profiling Data From VisualVM}
