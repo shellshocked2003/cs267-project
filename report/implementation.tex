@@ -28,7 +28,7 @@ In order to subdivide a block, it is necessary to establish whether the block is
 \begin{aligned} 
 &\text{minimize } s\\
 &\boldsymbol{a_{i}^{T} x} - d_i \leq s, i = 1,...,N\\
-&\boldsymbol{a_{new}^{T} x} - d_{new} = 0
+&\boldsymbol{a_{\text{new}}^{T} x} - d_{\text{new}} = 0
 \end{aligned}
 \end{equation}
 
@@ -44,19 +44,19 @@ As the subdivision continues, some of the discontinuities may become geometrical
 
 Here, \textbf{c} is one of the normal vectors $a_{i}$. If $\vert \boldsymbol{c^{T} x} - d \vert < \varepsilon$ is true the discontinuity is redundant, where $\varepsilon$ represents numerical tolerance close to zero. \par
 
-Not all joints are necessarily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. These inequalities are in reference to a local origin within the joint plane and first need to be converted to global coordinates before intersection can be established. The local inequalities are transformed to global coordinates through a rotation transformation to then yield the following linear program: 
+Not all joints are necessarily persistent, i.e. not all joints extend through the entire rock mass, and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. These inequalities are in reference to a local origin within the joint plane and first need to be converted to global coordinates before intersection can be established. The local inequalities are transformed to global coordinates through a rotation transformation to then yield the following linear program: 
 \begin{equation}
 \begin{aligned} 
 &\text{minimize } s\\
 &\boldsymbol{a_{i}^{T} x} - d_i \leq s, i = 1,...,N\\
-&\boldsymbol{a_{new}^{T} x} - d_{new} = 0\\
-&\boldsymbol{a_{j,bound}^{T} x} - d_{j,bound} = 0
+&\boldsymbol{a_{\text{new}}^{T} x} - d_{\text{new}} = 0\\
+&\boldsymbol{a_{j,\text{bound}}^{T} x} - d_{j,\text{bound}} = 0
 \end{aligned}
 \end{equation}
 
 The additional constraints sub-scripted with \textit{bound} define the boundaries of the \textit{new} discontinuity. 
 
-After each discontinuity has been processed by each block and all redundant joints have been removed, the final result is a list of \textit{Block} objects. The final step before outputting the results is to find the centroid of each block. In order to do this, it is necessary to calculate the vertices but this is only done once throughout all the computations. Using the vertex coordinates, each face is meshed using Delaunay triangulation. By doing this, the entire boundary off the polyhedron is described as a union of triangles that can then be used to find the centroid as outlined in \cite{centroid}. 
+After each discontinuity has been processed by each block and all redundant joints have been removed, the final result is a list of \textit{Block} objects. The final step before outputting the results is to find the centroid of each block. In order to do this, it is necessary to calculate the vertices but this is only done once throughout all the computations. Using the vertex coordinates, each face is meshed using Delaunay triangulation. By doing this, the entire boundary of the polyhedron is described as a union of triangles that can then be used to find the centroid as outlined in \cite{centroid}. 
 
 \subsection{Input Processing}
 The input data consists of all the faces that define the rock volume of interest as well as all the joints that intersect this volume. The distances of the faces and joints are all relative to a global origin. The input format is a multi-line text file where each line contains the relevant input for either a face or a joint. The input ordering should be such that all faces that define the rock volume occur first in the text file. While reading the input, if a line with a single ``\%'' is encountered, the input reading switches to joints. \par
@@ -66,17 +66,17 @@ Additionally, the joints should be ordered in sequence according to their mechan
 \subsection{Processing Discontinuities}
 Before creating an RDD, the same number of joints is processed as the number of cores in the submitted job. This allows for sufficient blocks to be generated to seed the initial RDD. As discussed later, how the RDD is seeded will have a significant impact on load balancing. \par
 
-Once these joints have been processed, a Spark context is started and the initial RDD is created. The list of remaining joints is broadcast to all nodes in the cluster and the discontinuities can be processed in parallel. Each node iterates through the list of joints and checks whether it intersects the blocks in its RDD. This is done by using \textit{flatMap} on the \textit{cut} method for each block. This method solves the linear program described above to determine intersection - the open-source LP solver \textit{lpSolve} is implemented within the method to do this. If the joint intersects a block, two child blocks are generated and added to the node's RDD. If there is no intersection, the RDD remains unchanged and the next joint processed.
+Once these joints have been processed, a Spark context is started and the initial RDD is created. The list of remaining joints is broadcast to all nodes in the cluster and the discontinuities can be processed in parallel. Each node iterates through the list of joints and checks whether it intersects the blocks in its RDD. This is done by using \texttt{flatMap} on the \texttt{cut} method for each block. This method solves the linear program described above to determine intersection - the open-source linear program solver \texttt{lp\_solve} \cite{lpsolve} is called within the method to do this. If the joint intersects a block, two child blocks are generated and added to the node's RDD. If there is no intersection, the RDD remains unchanged and the next joint processed.
 
 \subsection{Redundant Joints}
-After all joints in the data set have been processed, the redundant joints are removed from the list of faces for all blocks. This is achieved in parallel by mapping the nonRedundantFaces method across the RDD. This method returns a new \textit{Block} object that contains only the non-redundant faces. Using a functional approach and pattern matching, a new list containing all the blocks in the RDD is generated when removing the redundant joints.
+After all joints in the data set have been processed, the redundant joints are removed from the list of faces for all blocks. This is achieved in parallel by mapping a \texttt{nonRedundantFaces} method defined in the \textit{Block} class across the RDD. This method returns a new \textit{Block} object that contains only the non-redundant faces. Using a functional approach and pattern matching, a new list containing all the blocks in the RDD is generated when removing the redundant joints.
 
 \subsection{Calculate Centroids}
 Before finalizing the list of blocks, it is necessary to calculate their centroids since this is required for a typical discrete element analysis. This requires knowledge of the blocks' vertices. The vertices are calculated by iterating over the list of faces, solving a $3x3$ system for all possible combinations. 
 
-To calculate the centroid following \cite{centroid}, the boundary of the block must be described as a union of triangles. The most efficient way to divide the boundaries of the block is by dividing the faces into triangles and since we know the vertices it lends itself to Delaunay triangulation. Instead of doing the triangulation in three dimensions, the faces are rotated to a two-dimensional local coordinate system and then meshed. This ensures that the ordering of the nodes is consistently counter-clockwise which is necessary for the centroid calculations. We implemented an existing Scala Dealaunay triangulation, which can be found at \url{https://github.com/mdda/DelaunayScala}.
+To calculate the centroid following \cite{centroid}, the boundary of the block must be described as a union of triangles. The most efficient way to divide the boundaries of the block is by dividing the faces into triangles and since we know the vertices it lends itself to Delaunay triangulation. Instead of doing the triangulation in three dimensions, the faces are rotated to a two-dimensional local coordinate system and then meshed. This ensures that the ordering of the nodes is consistently counter-clockwise which is necessary for the centroid calculations. We used an existing Dealaunay triangulation library implemented in Scala \cite{delaunay}.
 
-All of the calculations mentioned above are implemented as methods within the \textit{Block} class. Again, the functional approach lends itself to \textit{map} and pattern matching on Spark: the vertices are calculated using \textit{findVertices} which then are fed into the \textit{mesh} method. The vertices and mesh then serve as the inputs to \textit{centroid}. The calculated centroid is used to find the new distances of the faces relative to the centroid in \textit{updateFaces}. The centroid and updated faces are then the inputs to the \textit{Block} constructor, so a list of new blocks is returned with the correct centroids and faces when the mapping is completed.
+All of the calculations mentioned above are implemented as methods within the \textit{Block} class. Again, the functional approach lends itself to \textit{map} and pattern matching on Spark: the vertices are calculated using \texttt{findVertices} which then are fed into the \texttt{mesh} method. The vertices and mesh then serve as the inputs to \textit{centroid}. The calculated centroid is used to find the new distances of the faces relative to the centroid in \texttt{updateFaces}. The centroid and updated faces are then the inputs to the \textit{Block} constructor, so a list of new blocks is returned with the correct centroids and faces when the mapping is completed.
 
 \subsection{Output to JSON}
 The final list of blocks is then ready to be used in a DEM analysis. In order to make the output accesible to other software, the resulting list of blocks is printed in JSON format to a text file. This is achieved through a \textit{json} object that contains methods for converting the \textit{Block}data structure to JSON and then writing the converted data to a text file. 
