@@ -1,4 +1,4 @@
-The rock block generating algorithm is based on a subdivision approach: each discontinuity is introduced sequentially and if it intersects the parent block, the parent block is subdivided into two child blocks. This process is repeated until all discontinuities have been processed and is repeated for each block. Figure \ref{fig:SlicingIllustration} shows a simple schematic of this process. The original serial algorithm is implemented in C++ using data structures to represent the blocks and discontinuities. \par 
+The rock block generating algorithm is based on a subdivision approach: each discontinuity is introduced sequentially and if it intersects the parent block, the parent block is subdivided into two child blocks. This process is repeated until all discontinuities have been processed and is repeated for each block. Figure \ref{fig:SlicingIllustration} shows a simple schematic of this process. The original serial algorithm is implemented in C++ using data structures to represent the blocks and discontinuities. \par
 
 \begin{figure}[h]
   \centering
@@ -7,26 +7,26 @@ The rock block generating algorithm is based on a subdivision approach: each dis
   \label{fig:SlicingIllustration}
 \end{figure}
 
-This algorithm is refactored and modified in Scala to run in parallel on Spark using a functional approach. The following sections give a description of how the different stages of the rock generation process are implemented from a high level. \ref{Details} gives more detail on the actual code generated to do this.  Within Scala, the blocks are case classes that keep a list of faces that define the block as well as the location of its center in global coordinates. The faces are are objects that store the face's normal vector, a distance from the block's origin, as well as the friction angle and cohesion along the face. The discontinuities, or joints, are also case classes. The class contains the normal vector to the plane that defines the joint, its distance from the joint's local origin and the global coordinates that define that origin. Additionally, it stores the dip angle, dip direction (shown in Figure \ref{fig:DipFig}), friction angle and cohesion along the joint face. In the case of non-persistent joints, it also stores a list of inequalities that describe the shape of the joint. 
+This algorithm is refactored and modified in Scala to run in parallel on Spark using a functional approach. The following sections give a description of how the different stages of the rock generation process are implemented from a high level. \ref{Details} gives more detail on the actual code generated to do this.  Within Scala, the blocks are case classes that keep a list of faces that define the block as well as the location of its center in global coordinates. The faces are are objects that store the face's normal vector, a distance from the block's origin, as well as the friction angle and cohesion along the face. The discontinuities, or joints, are also case classes. The class contains the normal vector to the plane that defines the joint, its distance from the joint's local origin and the global coordinates that define that origin. Additionally, it stores the dip angle, dip direction (shown in Figure \ref{fig:DipFig}), friction angle and cohesion along the joint face. In the case of non-persistent joints, it also stores a list of inequalities that describe the shape of the joint.
 
 \begin {figure}[h]
   \centering
   \includegraphics[width=0.4\textwidth]{DipFig}
-  \caption{Definition of strike, dip and dip direction \cite{slicing}} 
-  \label{fig:DipFig}           
+  \caption{Definition of strike, dip and dip direction \cite{slicing}}
+  \label{fig:DipFig}
 \end{figure}
 
 Using this data structure, it is possible to completely describe the volume defining a polyhedral block, negating the need to story any information on the edges and vertics which can be calculated if necessary. The volume defining a block bounded by \textit{N} planes can be described completely by the following inequality:
 
 \begin{equation}
-a_ix + b_iy + c_iz \leq d_i, i = 1,...,N 
+a_ix + b_iy + c_iz \leq d_i, \; i = 1 ,\, \ldots ,\, N
 \end{equation}
 
 The coefficients $(a_i, b_i, c_i)$ represent the normal vector to the $i^{th}$ plane bounding the block and $d_i$ is the distance of that plane from some local origin. \par
- 
+
 In order to subdivide a block, it is necessary to establish whether the block is intersected by the discontinuity being considered. The novelty in the algorithm presented in \cite{slicing} is recasting this problem as the following linear program: \par
 
-\begin{align} 
+\begin{align}
 \text{minimize } s\\
 \boldsymbol{a_{i}^{T}} - d_i \leq s, i = 1,...,N\\
 \boldsymbol{a_{new}^{T}} - d_{new} = 0
@@ -43,7 +43,7 @@ As the subdivision continues, some of the discontinuities may become geometrical
 
 Here, \textbf{c} is one of the normal vectors $a_{i}$. If $\vert \boldsymbol{c^{T} x - d} \vert < \varepsilon$ is true the discontinuity is redundant, where $\varepsilon$ represents numerical tolerance close to zero. \par
 
-Not all joints are necessily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. The 
+Not all joints are necessily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. The
 
 
 
