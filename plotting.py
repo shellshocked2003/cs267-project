@@ -58,7 +58,7 @@ plt.xlabel('# of cores', fontsize=18)
 plt.legend(handles=[line1, line2, line3], loc=1, fontsize=18)
 plt.grid(b=True, which='major', linestyle='--')
 plt.grid(b=True, which='minor', linestyle='--') 
-fig1.savefig("strongScalingEfficiency.png", bbox_inches="tight")
+fig1.savefig("strongScalingEfficiency.pdf", bbox_inches="tight")
 plt.close(fig1)
 
 fig2 = plt.figure()

@@ -17,33 +17,44 @@ This algorithm is refactored and modified in Scala to run in parallel on Spark u
 \end{figure}
 
 Using this data structure, it is possible to completely describe the volume defining a polyhedral block, negating the need to story any information on the edges and vertics which can be calculated if necessary. The volume defining a block bounded by \textit{N} planes can be described completely by the following inequality:
-
 \begin{equation}
 a_ix + b_iy + c_iz \leq d_i, i = 1,...,N 
 \end{equation}
 
 The coefficients $(a_i, b_i, c_i)$ represent the normal vector to the $i^{th}$ plane bounding the block and $d_i$ is the distance of that plane from some local origin. \par
  
-In order to subdivide a block, it is necessary to establish whether the block is intersected by the discontinuity being considered. The novelty in the algorithm presented in \cite{slicing} is recasting this problem as the following linear program: \par
-
-\begin{align} 
-\text{minimize } s\\
-\boldsymbol{a_{i}^{T}} - d_i \leq s, i = 1,...,N\\
-\boldsymbol{a_{new}^{T}} - d_{new} = 0
-\end{align}
+In order to subdivide a block, it is necessary to establish whether the block is intersected by the discontinuity being considered. The novelty in the algorithm presented in \cite{slicing} is recasting this problem as the following linear program: 
+\begin{equation}
+\begin{aligned} 
+&\text{minimize } s\\
+&\boldsymbol{a_{i}^{T} x} - d_i \leq s, i = 1,...,N\\
+&\boldsymbol{a_{new}^{T} x} - d_{new} = 0
+\end{aligned}
+\end{equation}
 
 Here \textit{N} represents the number of planes that define the block and the discontinuity being considered is represented by the equality. If $s < 0$, there is an intersection and the parent block is split into two child blocks. The child blocks inherit all parent block's planes as well as the intersecting discontinuity with opposite signs for each child block. \par
 
-As the subdivision continues, some of the discontinuities may become geometrically redundant. It is not necessary to remove these redundancies after each intersection check; instead they can be removed after all discontinuities have been considered. Again, this can be done by solving a linear program: \par
+As the subdivision continues, some of the discontinuities may become geometrically redundant. It is not necessary to remove these redundancies after each intersection check; instead they can be removed after all discontinuities have been considered. Again, this can be done by solving a linear program: 
+\begin{equation}
+\begin{aligned}
+&\text{maximize }\boldsymbol{c^{T} x}\\
+&\boldsymbol{a_{i}^{T} x} - d_{i}, i = 1,...,N
+\end{aligned}
+\end{equation}
 
-\begin{align}
-\text{maximize }\boldsymbol{c^{T} x}\\
-\boldsymbol{a_{i}^{T} x} - d_{i}, i = 1,...,N
-\end{align}
+Here, \textbf{c} is one of the normal vectors $a_{i}$. If $\vert \boldsymbol{c^{T} x} - d \vert < \varepsilon$ is true the discontinuity is redundant, where $\varepsilon$ represents numerical tolerance close to zero. \par
 
-Here, \textbf{c} is one of the normal vectors $a_{i}$. If $\vert \boldsymbol{c^{T} x - d} \vert < \varepsilon$ is true the discontinuity is redundant, where $\varepsilon$ represents numerical tolerance close to zero. \par
+Not all joints are necessily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. These inequalities are in reference to a local origin within the joint plane and need to first be converted to global coordinates before intersection can be established. The local inequalities are transformed to global coordinates through a rotation transformation to then yield the following linear program: 
+\begin{equation}
+\begin{aligned} 
+&\text{minimize } s\\
+&\boldsymbol{a_{i}^{T} x} - d_i \leq s, i = 1,...,N\\
+&\boldsymbol{a_{new}^{T} x} - d_{new} = 0\\
+&\boldsymbol{a_{j,bound}^{T} x} - d_{j,bound} = 0
+\end{aligned}
+\end{equation}
 
-Not all joints are necessily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. The 
+The additional constraints subscripted with \textit{bound} define the boundaries of the \textit{new} discontinuity. 
 
 
 
