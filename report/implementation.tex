@@ -44,7 +44,7 @@ As the subdivision continues, some of the discontinuities may become geometrical
 
 Here, \textbf{c} is one of the normal vectors $a_{i}$. If $\vert \boldsymbol{c^{T} x} - d \vert < \varepsilon$ is true the discontinuity is redundant, where $\varepsilon$ represents numerical tolerance close to zero. \par
 
-Not all joints are necessily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. These inequalities are in reference to a local origin within the joint plane and need to first be converted to global coordinates before intersection can be established. The local inequalities are transformed to global coordinates through a rotation transformation to then yield the following linear program: 
+Not all joints are necessily persistent and this needs to be accounted for in the solution of the linear program. Each joint contains a list of inequalities that represent its extent within the plane that defines the joint. These inequalities are in reference to a local origin within the joint plane and first need to be converted to global coordinates before intersection can be established. The local inequalities are transformed to global coordinates through a rotation transformation to then yield the following linear program: 
 \begin{equation}
 \begin{aligned} 
 &\text{minimize } s\\
