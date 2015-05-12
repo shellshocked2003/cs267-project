@@ -1,0 +1,53 @@
+We chose to implement our rock slicing module in the Scala programming language. We made this choice for a number of reasons. First, because much of Spark itself is implemented in Scala, we felt that using Scala ourselves would provide the best means of interfacing with Spark, as opposed to the Java and Python interfaces which still do not support some Spark features. Moreover, we were interested in working with Scala's synthesis of object-oriented programming and functional programming. In general, we found Scala a pleasure to work with because of its rich array of libraries, relatively user-friendly build system, and the ability to write expressive yet concise code. For example, our logic to check for an intersection between a discontinuity and rock block and compute child blocks if necessary required about 40 lines of Scala code. Boon's original C++ implementation, on the other hand, involves approximately 230 lines of code (excluding comments) just to perform an intersection check.
+
+\subsection{Input Processing}
+Our rock slicing module expects to receive a text file as input. The format of this file is quite simple. The first several lines of the file define inequalities that specify the boundaries of the rock formation that will be sliced. These inequalities are of the form $ax + by + cz \leq d$, so each line contains the $a$, $b$, $c$, and $d$ values separated by spaces. We then use a line containing the \texttt{\%} character to indicate the end of these inequalities and the start of the list of joints to be processed. Each joint is specified by a list of space-separated values. The first four values specify the plane of the joint, $ax + by + cz = d$. The next three values specify the center of the joint, $(x,y,z)$, and the final values specify the dip angle $\theta_{\text{dip}}$, dip direction $\theta_{\text{dir}}$, friction angle $\phi$, and cohesion of the joint face. Each line in the file that specifies a joint may optionally contain a list of normal vectors defining faces that specify the extent of the joint in space if that joint is non-persistent.
+
+Parsing this file is simple. We use the Scala \texttt{Source} class to read the file line by line, constructing faces specifying the rock volume from each line until a \texttt{\%} is reached. Then, all remaining lines are each converted to a joint data structure that will be processed by our algorithm. Currently, we simply iterate over the lines of the file, but we plan to implement a more functional approach in which we slice the lines of file into two lists separated by \texttt{\%} and then compute a \texttt{map} over these two lists to produce the rock volume faces and joints, respectively.
+
+\subsection{Rock Cutting}
+Next, we perform rock cutting in two phases. Starting from the global rock volume, we process the first few joints to produce an initial collection of child blocks. This issue is discussed more fully in section 4.1. Next, we use Spark to convert this collection of blocks to a parallel reliable distributed data set (RDD) that is partitioned across multiple workers (CPU cores, potentially living on different nodes in a cluster). In the second cutting phase, our implementation iterates over each of the remaining discontinuities and performs rock cutting in parallel. We define a \texttt{cut} method in the class defining a rock block data structure that can be described by the following pseudocode.
+\begin{verbatim}
+def cut(joint):
+    if (block intersects joint) {
+        return List of child blocks
+    } else {
+        return List containing only this block
+    }
+\end{verbatim}
+This leads to a very natural expression of cutting rock blocks in parallel using Scala's \texttt{flatMap} function. Essentially, we compute a \texttt{flatMap} of the current RDD of rock blocks, using the current joint as the argument to the cut function. This produces an RDD of lists, each containing the original parent block if it did not intersect the joint or the two child blocks if there was an intersection. Scala then flattens these into a single list, which contains our new collection of blocks after processing the joint. Thus, the heart of our rock cutting implementation can be expressed using just a small snippet of Scala code:
+\begin{verbatim}
+var rockBlocks = spark.parallelize(initialBlocks)
+for (joint <- jointList) {
+    rockBlocks = rockBlocks.flatMap(_.cut(joint))
+}
+\end{verbatim}
+
+\subsection{Removing Geometrically Redundant Joints}
+Once we have processed all joints in the data set, our final RDD contains all of the rock blocks in the formation. However, several important processing steps remain. First, as explained in Section 3, the rock cutting process can lead to the storage of geometrically redundant bounding faces in the rock block data structure. These faces are not needed to specify the region of space occupied by the rock block and hence can be safely removed to save space and processing in subsequent steps. Luckily, determining whether or not a face is redundant is as simple as solving a linear program, as described in section 2. Once again, we can use a functional approach to discuss the removal of the redundant faces of a block using succinct pseudocode.
+\begin{verbatim}
+non_redundant_faces = block.faces.filter { face =>
+    s = Solution to linear program given in (x)
+    return (s - d) != 0
+}
+\end{verbatim}
+
+\subsection{Calculating Centroids}
+Our implementation also calculates the center of mass of each of the rock blocks (assuming each block is of uniform density). This requires two major steps. First, we temporarily calculate the vertices of the rock block by computing the intersection points of its bounding faces. This stage therefore involves some dense linear algebra in order to reason about three-dimensional geometry. We chose to use Breeze \cite{breeze}, a Scala library, to carry out our linear algebra computations. We chose Breeze because it is well-known for its use in MLlib, a widely-used machine learning framework for Spark, and because Breeze can outsource to native and efficient BLAS and LAPACK implementations when possible. The second step of this process requires a mesh over the rock block to be computed, which involves Delaunay Triangulation. We used a simple open-source library implemented in Scala \cite{delaunay}. We have not fully evaluated the efficiency of this library, and may move to a more efficient implementation in the future. Our centroid calculation process is simply a \texttt{map} over the rock block RDD, described by the following pseudocode:
+\begin{verbatim}
+centroidBlocks = rockBlocks.map { block =>
+    vertices = block.findVertices()
+    mesh = block.delaunayTriangulation(vertices)
+    centroid = block.findCentroid(vertices, mesh)
+    return new Block with same faces, new centroid
+}
+\end{verbatim}
+
+\subsection{Producing JSON}
+Finally, our implementation saves the rock block RDD, now without geometrically redundant faces and with correct centroids, to a JSON file. We chose to use the ScalaJson library from the widely-used Play web framework \cite{play}. We chose JSON because it is a language-neutral means of encoding simple data structures, like the rock blocks in our algorithm. This could just as easily be replaced by a different stage in which we convert the rock blocks to some other format. If we end up implementing a discrete element model for rock blocks, for example, we may decide to use a more convenient format as output from the rock slicing module. This final step is just another \texttt{map} over the rock block RDD. Each block is serialized to JSON, and then each element of the RDD is written as a line to a designated output text file. This is summarized in the following pseudocode.
+\begin{verbatim}
+jsonBlocks = centroidBlocks.map(convertToJson)
+spark.writeTextFile(jsonBlocks)
+\end{verbatim}
+
+
