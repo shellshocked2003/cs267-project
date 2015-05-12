@@ -8,12 +8,11 @@ Parsing this file is simple. We use the Scala \texttt{Source} class to read the 
 \subsection{Rock Cutting}
 Next, we perform rock cutting in two phases. Starting from the global rock volume, we process the first few joints to produce an initial collection of child blocks. This issue is discussed more fully in section 4.1. Next, we use Spark to convert this collection of blocks to a parallel reliable distributed data set (RDD) that is partitioned across multiple workers (CPU cores, potentially living on different nodes in a cluster). In the second cutting phase, our implementation iterates over each of the remaining discontinuities and performs rock cutting in parallel. We define a \texttt{cut} method in the class defining a rock block data structure that can be described by the following pseudocode.
 \begin{verbatim}
-def cut(joint):
-    if (block intersects joint) {
-        return List of child blocks
-    } else {
-        return List containing only this block
-    }
+if (block intersects joint) {
+    return List of child blocks
+} else {
+    return List containing only this block
+}
 \end{verbatim}
 This leads to a very natural expression of cutting rock blocks in parallel using Scala's \texttt{flatMap} function. Essentially, we compute a \texttt{flatMap} of the current RDD of rock blocks, using the current joint as the argument to the cut function. This produces an RDD of lists, each containing the original parent block if it did not intersect the joint or the two child blocks if there was an intersection. Scala then flattens these into a single list, which contains our new collection of blocks after processing the joint. Thus, the heart of our rock cutting implementation can be expressed using just a small snippet of Scala code:
 \begin{verbatim}
